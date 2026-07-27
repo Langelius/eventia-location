@@ -1,0 +1,78 @@
+@startuml Eventia-Classes-Materiel
+title Diagramme de classes - Service Materiel
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Service Materiel" {
+
+  class EquipmentController {
+    - service : EquipmentService
+    + EquipmentController(service)
+    + list(req, res, next)
+    + getById(req, res, next)
+    + create(req, res, next)
+    + update(req, res, next)
+    + reserve(req, res, next)
+    + release(req, res, next)
+    + remove(req, res, next)
+  }
+
+  class EquipmentService {
+    - repository : EquipmentRepository
+    + EquipmentService(repository)
+    + list() : Promise<Object[]>
+    + getById(id) : Promise<Object>
+    + create(data) : Promise<Object>
+    + update(id, data) : Promise<Object>
+    + remove(id) : Promise<boolean>
+    + reserve(id, quantity) : Promise<Object>
+    + release(id, quantity) : Promise<Object>
+    - {static} requireQuantity(quantity) : number
+  }
+
+  class EquipmentRepository {
+    - model : Model
+    + EquipmentRepository(model)
+    + {static} isValidId(id) : boolean
+    + findAll() : Promise<Document[]>
+    + findById(id) : Promise<Document>
+    + create(data) : Promise<Document>
+    + update(id, data) : Promise<Document>
+    + deleteById(id) : Promise<Document>
+    + decreaseQuantity(id, quantity) : Promise<Document>
+    + increaseQuantity(id, quantity) : Promise<Document>
+  }
+
+  class Equipment {
+    + id : string
+    + name : string
+    + category : string
+    + dailyPrice : number
+    + availableQuantity : number
+    + createdAt : Date
+    + updatedAt : Date
+    + Equipment(data)
+    + {static} fromDocument(document) : Equipment
+    - {static} clean(value) : string
+    - {static} toNumber(value) : number
+    + validate() : ValidationResult
+    + isValid() : boolean
+    + canReserve(quantity) : boolean
+    + priceFor(days, quantity) : number
+    + toPersistence() : Object
+    + toJSON() : Object
+  }
+}
+
+EquipmentController "1" --> "1" EquipmentService : utilise
+EquipmentService "1" --> "1" EquipmentRepository : utilise
+EquipmentService "1" ..> "0..*" Equipment : cree et valide
+EquipmentRepository "1" ..> "0..*" Equipment : persiste
+
+note bottom of EquipmentRepository
+  decreaseQuantity place la condition
+  availableQuantity >= quantity DANS le filtre :
+  test et decrement forment une seule
+  operation atomique MongoDB.
+end note
+@enduml

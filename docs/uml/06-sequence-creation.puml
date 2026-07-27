@@ -1,0 +1,59 @@
+@startuml Eventia-Sequence-Creation
+title Creation d'une reservation
+autonumber
+skinparam shadowing false
+
+actor Employe
+participant "Frontend React" as FE
+participant "ReservationController" as RC
+participant "ReservationService" as RS
+participant "Reservation\n(entite)" as R
+participant "Service Client\n:4001" as CS
+participant "Service Materiel\n:4002" as ES
+participant "ReservationRepository" as RR
+participant "Service Notification\n:4004" as NS
+
+Employe -> FE : remplit le formulaire
+FE -> RC : POST /api/reservations\n{clientId, equipmentId, quantity, startDate, endDate}
+RC -> RS : create(payload)
+RS -> R : new Reservation(payload).validate()
+
+alt donnees invalides
+  R --> RS : {valid: false, errors}
+  RC --> FE : 400 {message}
+else donnees valides
+  RS -> CS : GET /api/clients/{id}
+  alt client introuvable
+    CS --> RS : 404
+    RC --> FE : 404 {message: "Client introuvable."}
+  else client trouve
+    CS --> RS : 200 {name, email}
+    RS -> R : applyClient(client)
+    RS -> ES : GET /api/equipments/{id}
+    alt materiel introuvable
+      ES --> RS : 404
+      RC --> FE : 404 {message: "Materiel introuvable."}
+    else quantite insuffisante
+      ES --> RS : 200 {availableQuantity < quantity}
+      RC --> FE : 409 {message: "Quantite insuffisante..."}
+    else disponible
+      ES --> RS : 200 {name, dailyPrice, availableQuantity}
+      RS -> ES : PUT /api/equipments/{id}/reserve {quantity}
+      ES --> RS : 200 (decrement atomique)
+      RS -> R : applyEquipment(equipment)\n-> days, totalPrice
+      RS -> RR : create(reservation)
+      alt echec d'enregistrement
+        RR --> RS : erreur
+        RS -> ES : PUT /{id}/release {quantity}  (compensation)
+        RC --> FE : 500 {message}
+      else enregistree
+        RR --> RS : document {_id, status: CONFIRMED}
+        RS -> NS : POST /api/notifications\n{recipient, message, type: RESERVATION_CONFIRMED}
+        NS --> RS : 201 (echec eventuel journalise, sans incidence)
+        RC --> FE : 201 {clientName, equipmentName, days, totalPrice, status}
+        FE --> Employe : liste rafraichie
+      end
+    end
+  end
+end
+@enduml

@@ -1,5 +1,21 @@
 import { Router } from "express";
-const router=Router();
-const todo=(req,res)=>res.status(501).json({message:"À implémenter par les étudiants"});
-router.get("/",todo); router.get("/:id",todo); router.post("/",todo); router.put("/:id",todo); router.patch("/:id/cancel",todo); router.delete("/:id",todo);
-export default router;
+
+/**
+ * Contrat REST du service des notifications :
+ * http://localhost:4004/api/notifications
+ *
+ * GET  /    -> 200, notifications de la plus recente a la plus ancienne
+ * POST /    -> 201, notification creee   { recipient, message, type }
+ *
+ * Ce service n'est jamais appele directement par le frontend en ecriture :
+ * les notifications sont declenchees par le service des reservations.
+ *
+ * @param {import("./controllers/NotificationController.js").default} controller
+ */
+export default function createNotificationRouter(controller) {
+  const router = Router();
+  router.get("/", controller.list);
+  router.get("/:id", controller.getById);
+  router.post("/", controller.create);
+  return router;
+}
