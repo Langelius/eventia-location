@@ -1,0 +1,14 @@
+{
+  "name": "eventia-tests",
+  "private": true,
+  "type": "module",
+  "description": "Tests de verification des contrats REST et du domaine (aucune modification du frontend).",
+  "scripts": {
+    "test": "node --test domain.test.mjs && node contracts.e2e.mjs"
+  },
+  "dependencies": {
+    "axios": "latest",
+    "cors": "latest",
+    "express": "latest"
+  }
+}
