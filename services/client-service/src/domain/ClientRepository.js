@@ -1,17 +1,53 @@
+import mongoose from "mongoose";
+
 /**
- * Assure l’accès aux données persistantes des clients.
+ * Assure l'accès aux données persistantes des clients.
  *
- * Cette classe reçoit le modèle Mongoose du client et centralise toutes les
- * opérations effectuées dans MongoDB. Elle doit permettre au reste du service
- * de consulter, ajouter, modifier et supprimer des clients sans manipuler
- * directement Mongoose.
- *
- * Travail demandé :
- * - conserver une référence vers le modèle Mongoose fourni;
- * - prévoir les opérations de persistance nécessaires aux contrats REST;
- * - retourner les résultats produits par Mongoose.
- *
- * Cette classe ne doit contenir ni validation métier ni traitement HTTP.
+ * Seule classe du service à connaître Mongoose. Elle ne contient aucune règle
+ * métier : elle traduit des demandes de persistance en requêtes MongoDB.
  */
 export default class ClientRepository {
+  /** @param {import("mongoose").Model} model modèle Mongoose des clients. */
+  constructor(model) {
+    this.model = model;
+  }
+
+  /** @returns {boolean} vrai si la chaîne est un ObjectId MongoDB valide. */
+  static isValidId(id) {
+    return mongoose.Types.ObjectId.isValid(String(id));
+  }
+
+  /** @returns {Promise<object[]>} tous les clients, du plus récent au plus ancien. */
+  async findAll() {
+    return this.model.find().sort({ createdAt: -1 }).exec();
+  }
+
+  /** @returns {Promise<object|null>} le client demandé ou null. */
+  async findById(id) {
+    if (!ClientRepository.isValidId(id)) return null;
+    return this.model.findById(id).exec();
+  }
+
+  /** @returns {Promise<object|null>} le client possédant ce courriel ou null. */
+  async findByEmail(email) {
+    if (!email) return null;
+    return this.model.findOne({ email: String(email).toLowerCase() }).exec();
+  }
+
+  /** @returns {Promise<object>} le client créé. */
+  async create(data) {
+    return this.model.create(data);
+  }
+
+  /** @returns {Promise<object|null>} le client modifié ou null s'il est introuvable. */
+  async update(id, data) {
+    if (!ClientRepository.isValidId(id)) return null;
+    return this.model.findByIdAndUpdate(id, data, { new: true, runValidators: true }).exec();
+  }
+
+  /** @returns {Promise<object|null>} le client supprimé ou null s'il est introuvable. */
+  async deleteById(id) {
+    if (!ClientRepository.isValidId(id)) return null;
+    return this.model.findByIdAndDelete(id).exec();
+  }
 }
