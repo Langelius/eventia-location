@@ -1,0 +1,36 @@
+@startuml Eventia-Sequence-Annulation
+title Annulation d'une reservation
+autonumber
+skinparam shadowing false
+
+actor Employe
+participant "Frontend React" as FE
+participant "ReservationController" as RC
+participant "ReservationService" as RS
+participant "ReservationRepository" as RR
+participant "Service Materiel\n:4002" as ES
+participant "Service Notification\n:4004" as NS
+
+Employe -> FE : clique sur "Annuler"
+FE -> RC : PATCH /api/reservations/{id}/cancel
+RC -> RS : cancel(id)
+RS -> RR : findById(id)
+
+alt reservation introuvable
+  RR --> RS : null
+  RC --> FE : 404 {message}
+else deja annulee
+  RR --> RS : {status: CANCELLED}
+  RC --> FE : 409 {message: "Cette reservation est deja annulee."}
+else confirmee
+  RR --> RS : {status: CONFIRMED, equipmentId, quantity}
+  RS -> ES : PUT /api/equipments/{id}/release {quantity}
+  ES --> RS : 200 (quantite remise en inventaire)
+  RS -> RR : update(id, {status: CANCELLED, cancelledAt})
+  RR --> RS : document mis a jour
+  RS -> NS : POST /api/notifications {type: RESERVATION_CANCELLED}
+  NS --> RS : 201
+  RC --> FE : 200 {status: "CANCELLED"}
+  FE --> Employe : materiel de nouveau disponible
+end
+@enduml

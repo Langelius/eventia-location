@@ -1,0 +1,14 @@
+@startuml Eventia-Etats-Reservation
+title Cycle de vie d'une reservation
+skinparam shadowing false
+
+[*] --> Validation : POST /api/reservations
+Validation --> Rejetee : donnees invalides (400)\nclient ou materiel absent (404)\nstock insuffisant (409)
+Validation --> CONFIRMED : stock decremente\n+ notification RESERVATION_CONFIRMED
+CONFIRMED --> CONFIRMED : PUT /{id}\nquantite ou periode modifiee\nstock et total reajustes
+CONFIRMED --> CANCELLED : PUT ou PATCH /{id}/cancel\nstock remis + notification RESERVATION_CANCELLED
+CANCELLED --> CANCELLED : nouvelle annulation refusee (409)
+CONFIRMED --> [*] : DELETE /{id} (stock libere)
+CANCELLED --> [*] : DELETE /{id}
+Rejetee --> [*]
+@enduml
