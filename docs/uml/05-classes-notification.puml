@@ -1,0 +1,63 @@
+@startuml Eventia-Classes-Notification
+title Diagramme de classes - Service Notification
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Service Notification" {
+
+  class NotificationController {
+    - service : NotificationService
+    + NotificationController(service)
+    + list(req, res, next)
+    + getById(req, res, next)
+    + create(req, res, next)
+  }
+
+  class NotificationService {
+    - repository : NotificationRepository
+    + NotificationService(repository)
+    + list() : Promise<Object[]>
+    + getById(id) : Promise<Object>
+    + create(data) : Promise<Object>
+  }
+
+  class NotificationRepository {
+    - model : Model
+    + NotificationRepository(model)
+    + {static} isValidId(id) : boolean
+    + findAll() : Promise<Document[]>
+    + findById(id) : Promise<Document>
+    + create(data) : Promise<Document>
+  }
+
+  class Notification {
+    + {static} DEFAULT_TYPE : string
+    + {static} TYPES : Object
+    + id : string
+    + recipient : string
+    + message : string
+    + type : string
+    + createdAt : Date
+    + Notification(data)
+    + {static} fromDocument(document) : Notification
+    - {static} clean(value) : string
+    + validate() : ValidationResult
+    + isValid() : boolean
+    + toPersistence() : Object
+    + toJSON() : Object
+  }
+}
+
+NotificationController "1" --> "1" NotificationService : utilise
+NotificationService "1" --> "1" NotificationRepository : utilise
+NotificationService "1" ..> "0..*" Notification : cree et valide
+NotificationRepository "1" ..> "0..*" Notification : persiste
+
+note bottom of Notification
+  Notification envoyee a un client.
+  TYPES : INFO (defaut),
+  RESERVATION_CONFIRMED,
+  RESERVATION_CANCELLED.
+  Aucun courriel reel n'est expedie.
+end note
+@enduml

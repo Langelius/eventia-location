@@ -1,0 +1,45 @@
+@startuml Eventia-Composants
+title Eventia Location - Architecture services
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor "Utilisateur\n(employe)" as U
+
+component "Frontend React\n(fourni - boite noire)\n:5173" as FE
+
+package "Backend" {
+  component "Service Client\n:4001\n/api/clients" as CS
+  component "Service Materiel\n:4002\n/api/equipments" as ES
+  component "Service Reservation\n:4003\n/api/reservations" as RS
+  component "Service Notification\n:4004\n/api/notifications" as NS
+
+  database "MongoDB\neventia_clients" as DBC
+  database "MongoDB\neventia_equipments" as DBE
+  database "MongoDB\neventia_reservations" as DBR
+  database "MongoDB\neventia_notifications" as DBN
+}
+
+U --> FE
+FE --> CS : REST
+FE --> ES : REST
+FE --> RS : REST
+FE ..> NS : REST (GET seulement)
+
+RS --> CS : GET /clients/{id}
+RS --> ES : GET /equipments/{id}\nPUT /equipments/{id}/reserve\nPUT /equipments/{id}/release
+RS --> NS : POST /notifications
+
+CS --> DBC
+ES --> DBE
+RS --> DBR
+NS --> DBN
+
+note bottom of FE
+  Le frontend est fourni.
+  Aucune modification n'est demandee.
+end note
+note top of RS
+  Le service reservation coordonne
+  les appels aux autres services.
+end note
+@enduml
